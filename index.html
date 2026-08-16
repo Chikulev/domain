@@ -15,12 +15,16 @@
             --text-muted: #475569;
             --accent: #2563eb;
             --glow-color: rgba(37, 99, 235, 0.08);
+            /* Переменные для параллакса фона */
+            --bg-x: 0px;
+            --bg-y: 0px;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            scroll-behavior: smooth;
         }
 
         body {
@@ -30,12 +34,24 @@
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
-            /* Строительная сетка на фоне */
+            /* Динамический параллакс фона */
             background-image: 
                 linear-gradient(var(--blueprint-line) 1px, transparent 1px),
                 linear-gradient(90deg, var(--blueprint-line) 1px, transparent 1px);
             background-size: 40px 40px;
-            background-position: center top;
+            background-position: calc(50% + var(--bg-x)) calc(0px + var(--bg-y));
+            transition: background-position 0.2s ease-out;
+        }
+
+        /* Класс для анимации появления при скролле */
+        .reveal {
+            opacity: 0;
+            transform: translateY(50px) scale(0.95);
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
 
         .container {
@@ -43,22 +59,28 @@
             margin: 0 auto;
             padding: 40px 24px;
             position: relative;
+            perspective: 1500px; /* Для 3D эффектов внутри контейнера */
         }
 
         /* Заголовок */
         .hero {
             text-align: center;
-            margin: 100px 0 80px;
-            animation: fadeUp 1s ease-out;
+            margin: 60px 0 80px;
             background: #ffffff;
             padding: 40px;
             border: 1px solid var(--border-color);
             border-radius: 2px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.02);
             position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .hero:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
         }
 
-        /* Имитация крепления чертежа */
+        /* Имитация крепления чертежа с микро-вибрацией */
         .hero::before, .hero::after {
             content: '';
             position: absolute;
@@ -68,9 +90,16 @@
             border-radius: 50%;
             background: #cbd5e1;
             border: 2px solid #f1f5f9;
+            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2), 1px 1px 2px rgba(0,0,0,0.1);
         }
-        .hero::before { left: 10px; }
-        .hero::after { right: 10px; }
+        .hero::before { left: 10px; animation: vibrate 3s infinite alternate; }
+        .hero::after { right: 10px; animation: vibrate 3s infinite alternate-reverse; }
+
+        @keyframes vibrate {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(1px, -1px) rotate(5deg); }
+            100% { transform: translate(-1px, 1px) rotate(-5deg); }
+        }
 
         .hero h1 {
             font-size: 4.5rem;
@@ -78,6 +107,14 @@
             letter-spacing: -0.04em;
             margin-bottom: 20px;
             color: var(--accent);
+            background: linear-gradient(45deg, var(--accent), #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: text-shadow 0.3s ease;
+        }
+
+        .hero:hover h1 {
+            text-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
         }
 
         .hero p {
@@ -87,18 +124,16 @@
             margin: 0 auto;
         }
 
-        /* Интерактивная сетка с "фонариком" */
+        /* Интерактивная сетка */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             position: relative;
+            margin-bottom: 80px;
         }
 
-        .grid:hover .card::before {
-            opacity: 1;
-        }
-
+        /* 3D Карточки с "фонариком" */
         .card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -106,27 +141,35 @@
             padding: 32px;
             position: relative;
             overflow: hidden;
-            cursor: default;
-            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            cursor: crosshair; /* Прицел для техничности */
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            /* Настройки для JS Tilt эффекта */
+            transform-style: preserve-3d;
+            transition: box-shadow 0.1s ease, border-color 0.3s ease;
+            will-change: transform;
         }
 
         .card:hover {
-            transform: translateY(-4px);
             border-color: var(--accent);
-            box-shadow: 0 12px 20px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
+            z-index: 10;
         }
 
-        /* Свечение под мышкой (синий строительный оттенок) */
-        .card::before {
+        /* Внутренний контент карточки приподнимается в 3D */
+        .card-content {
+            position: relative;
+            z-index: 2;
+            transform: translateZ(30px); /* 3D отрыв текста */
+            transition: transform 0.3s ease;
+        }
+
+        /* Свечение под мышкой */
+        .card::before, .promo-block::before {
             content: "";
             position: absolute;
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(
-                600px circle at var(--mouse-x) var(--mouse-y), 
+                800px circle at var(--mouse-x) var(--mouse-y), 
                 var(--glow-color), 
                 transparent 40%
             );
@@ -134,12 +177,9 @@
             transition: opacity 0.3s ease;
             pointer-events: none;
             z-index: 1;
+            transform: translateZ(0);
         }
-
-        .card-content {
-            position: relative;
-            z-index: 2;
-        }
+        .grid:hover .card::before, .promo-block:hover::before { opacity: 1; }
 
         .card h3 {
             font-size: 1.3rem;
@@ -155,258 +195,221 @@
             color: var(--text-muted);
             font-size: 1rem;
             line-height: 1.7;
-        }
-
-        /* Блок покупки */
-        .action-area {
-            margin-top: 80px;
-            text-align: center;
-            padding: 60px 40px;
-            background: var(--accent);
-            color: #ffffff;
-            border-radius: 2px;
-            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Декоративные строительные полосы */
-        .action-area::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 6px;
-            background: repeating-linear-gradient(
-                45deg,
-                #fbbf24,
-                #fbbf24 10px,
-                #000000 10px,
-                #000000 20px
-            );
-        }
-
-        .badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-            padding: 6px 16px;
-            border-radius: 2px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 24px;
-        }
-
-        .price {
-            font-size: 3.5rem;
-            font-weight: 800;
-            margin-bottom: 24px;
-        }
-
-        .action-area p {
-            color: rgba(255, 255, 255, 0.9);
-            max-width: 650px;
-            margin: 0 auto 40px;
-            font-size: 1.1rem;
-        }
-
-        .btn {
-            display: inline-block;
-            background-color: #ffffff;
-            color: var(--accent);
-            padding: 18px 40px;
-            border-radius: 2px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.1rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        }
-
-        /* НОВАЯ СПРАВКА: ТЕХНИЧЕСКИЙ ШТАМП ЧЕРТЕЖА */
-        .footer-info {
-            margin-top: 80px;
-            background: var(--card-bg);
-            border: 1px solid var(--accent);
-            border-radius: 2px;
-            position: relative;
-            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.08);
-            overflow: hidden;
-        }
-
-        /* Декоративные уголки */
-        .footer-info::before, .footer-info::after {
-            content: '';
-            position: absolute;
-            width: 20px; height: 20px;
-            border: 2px solid var(--accent);
-            z-index: 2;
-            pointer-events: none;
-        }
-        .footer-info::before { top: 0; left: 0; border-right: none; border-bottom: none; }
-        .footer-info::after { bottom: 0; right: 0; border-left: none; border-top: none; }
-
-        .blueprint-stamp {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .stamp-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--accent);
-            color: #fff;
-            padding: 16px 24px;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .stamp-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-        }
-
-        .stamp-id {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            letter-spacing: 1px;
-        }
-
-        .stamp-body {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-        }
-
-        .stamp-cell {
-            padding: 24px;
-            border-right: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .stamp-cell:nth-child(4n) { border-right: none; }
-        .desc-cell { border-bottom: none; border-right: none; }
-
-        .col-span-2 { grid-column: span 2; }
-        .col-span-4 { grid-column: span 4; }
-
-        .cell-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .cell-value {
-            font-size: 1.15rem;
-            color: var(--text-main);
-            font-weight: 700;
-            line-height: 1.3;
-        }
-
-        .cell-sub {
-            font-size: 0.85rem;
-            color: var(--accent);
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        .desc-cell p {
-            color: var(--text-muted);
-            line-height: 1.7;
-            font-size: 0.95rem;
-            margin-top: 10px;
-            column-count: 2;
-            column-gap: 40px;
             text-align: justify;
         }
 
-        /* Анимированный прогресс-бар */
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: var(--border-color);
-            border-radius: 3px;
-            margin: 8px 0;
-            overflow: hidden;
+        /* --- НОВАЯ СТРУКТУРА: 2 КОЛОНКИ (STICKY + SCROLL) --- */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 40px;
+            align-items: start;
+            margin-bottom: 80px;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            border-radius: 3px;
-            position: relative;
+        /* ЛЕВАЯ КОЛОНКА: ПРИЛИПАЮЩИЙ РЕКЛАМНЫЙ БЛОК */
+        .sticky-sidebar {
+            position: sticky;
+            top: 40px;
+            z-index: 20;
+        }
+
+        .promo-block {
+            background: var(--card-bg); border: 2px dashed #f59e0b;
+            border-radius: 4px; padding: 40px 30px; position: relative; overflow: hidden;
+            cursor: crosshair; box-shadow: 0 15px 35px rgba(245, 158, 11, 0.08);
+            transform-style: preserve-3d; transition: transform 0.3s, box-shadow 0.3s;
+            will-change: transform;
         }
         
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 10px,
-                rgba(255,255,255,0.3) 10px,
-                rgba(255,255,255,0.3) 20px
-            );
-            animation: moveStripes 2s linear infinite;
+        .promo-block:hover { box-shadow: 0 25px 50px rgba(245, 158, 11, 0.15); }
+        
+        .promo-badge {
+            position: absolute; top: 20px; right: -40px; background: #f59e0b; color: #fff;
+            font-size: 0.7rem; font-weight: 800; padding: 6px 45px; transform: rotate(45deg);
+            letter-spacing: 1px; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        @keyframes moveStripes {
+        .promo-content { transform: translateZ(30px); position: relative; z-index: 2; pointer-events: none; }
+        
+        /* ПРАВАЯ КОЛОНКА: СКРОЛЛЯЩИЙСЯ ПАСПОРТ ОБЪЕКТА */
+        .footer-info {
+            background: var(--card-bg); border: 1px solid var(--accent);
+            border-radius: 4px; position: relative; box-shadow: 0 15px 40px rgba(37, 99, 235, 0.05);
+            transition: all 0.4s ease;
+        }
+        .footer-info:hover { box-shadow: 0 25px 50px rgba(37, 99, 235, 0.12); border-width: 2px; transform: translateY(-2px); }
+
+        .stamp-corners::before, .stamp-corners::after {
+            content: ''; position: absolute; width: 24px; height: 24px;
+            border: 3px solid var(--accent); z-index: 2; pointer-events: none;
+        }
+        .stamp-corners::before { top: 0; left: 0; border-right: none; border-bottom: none; }
+        .stamp-corners::after { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+        .blueprint-stamp { display: flex; flex-direction: column; }
+        .stamp-header {
+            display: flex; justify-content: space-between; align-items: center; background: var(--accent);
+            color: #fff; padding: 20px 24px; font-family: 'Courier New', Courier, monospace;
+        }
+        .stamp-title { font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; }
+        .stamp-id { font-size: 0.95rem; opacity: 0.8; letter-spacing: 1px; }
+
+        .stamp-body { display: grid; grid-template-columns: repeat(2, 1fr); position: relative; }
+        
+        .stamp-cell {
+            padding: 30px 24px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
+            display: flex; flex-direction: column; justify-content: center;
+            transition: background 0.3s ease, transform 0.3s ease; position: relative; z-index: 1;
+        }
+        .stamp-cell:hover { background: var(--glow-color); z-index: 2; }
+        .stamp-cell:hover .cell-value { color: var(--accent); transform: translateX(5px); }
+
+        .stamp-cell:nth-child(2n) { border-right: none; }
+        .col-span-2 { grid-column: span 2; }
+        .desc-cell { border-bottom: none; }
+
+        .cell-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 700; font-family: 'Courier New', Courier, monospace; }
+        .cell-value { font-size: 1.25rem; color: var(--text-main); font-weight: 800; line-height: 1.3; transition: color 0.3s, transform 0.3s; }
+        .cell-sub { font-size: 0.9rem; color: var(--accent); margin-top: 6px; font-weight: 600; }
+        .desc-cell p { color: var(--text-muted); line-height: 1.8; font-size: 1.05rem; margin-top: 16px; }
+
+        /* ПРОГРЕСС БАР С АНИМАЦИЕЙ ЧИСЕЛ */
+        .progress-bar { width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; position: relative; }
+        .progress-fill {
+            height: 100%; width: 0%; background: linear-gradient(90deg, #60a5fa, var(--accent)); border-radius: 4px;
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+        }
+
+        /* БЛОК ПОКУПКИ (Снизу) */
+        .action-area {
+            text-align: center; padding: 70px 40px; background: var(--accent);
+            color: #ffffff; border-radius: 4px; box-shadow: 0 20px 50px rgba(37, 99, 235, 0.25);
+            position: relative; overflow: hidden;
+        }
+
+        .action-area::after {
+            content: ''; position: absolute; top: 0; left: 0; right: -100px; height: 6px;
+            background: repeating-linear-gradient(-45deg, #fbbf24, #fbbf24 15px, #000000 15px, #000000 30px);
+            animation: tapeMove 2s linear infinite;
+        }
+
+        @keyframes tapeMove {
             0% { background-position: 0 0; }
-            100% { background-position: 28px 0; }
+            100% { background-position: -42.42px 0; }
         }
 
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .badge {
+            display: inline-block; background: rgba(255, 255, 255, 0.2); color: #ffffff;
+            padding: 8px 16px; border-radius: 4px; font-size: 0.85rem; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; backdrop-filter: blur(4px);
         }
 
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 3rem; }
-            .price { font-size: 2.8rem; }
+        .price {
+            font-size: 4rem; font-weight: 900; margin-bottom: 24px; line-height: 1;
+            animation: pulse-price 2s infinite alternate; letter-spacing: -1px;
+        }
+
+        @keyframes pulse-price {
+            0% { transform: scale(1); text-shadow: 0 0 0 rgba(255,255,255,0); }
+            100% { transform: scale(1.05); text-shadow: 0 10px 30px rgba(255,255,255,0.4); }
+        }
+
+        .action-area p { color: rgba(255, 255, 255, 0.9); max-width: 650px; margin: 0 auto 40px; font-size: 1.15rem; }
+
+        .btn {
+            display: inline-block; background-color: #ffffff; color: var(--accent);
+            padding: 20px 40px; border-radius: 4px; text-decoration: none;
+            font-weight: 800; font-size: 1.1rem; position: relative; overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1; cursor: pointer;
+        }
+        
+        .btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: var(--text-main); transition: all 0.4s ease; z-index: -1;
+        }
+        .btn:hover { color: #fff; transform: translateY(-5px) scale(1.03); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .btn:hover::before { left: 0; }
+
+        /* --- СТИЛЬНЫЙ ПОДВАЛ --- */
+        .site-footer {
+            margin-top: 60px;
+            border-top: 1px dashed var(--border-color);
+            padding: 40px 0;
+        }
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--text-main);
+        }
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 900px) {
+            .split-layout { grid-template-columns: 1fr; }
+            .sticky-sidebar { position: static; margin-bottom: 40px; }
+            .hero { padding: 30px; text-align: center; }
             .stamp-body { grid-template-columns: 1fr; }
             .stamp-cell { border-right: none; }
-            .col-span-2, .col-span-4 { grid-column: span 1; }
-            .desc-cell p { column-count: 1; }
+            .col-span-2 { grid-column: span 1; }
+            .footer-content, .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
         }
     </style>
 </head>
-<body>
+<body id="top">
 
     <div class="container">
         <!-- Главный экран -->
-        <header class="hero">
-            <h1>ruchi2.ru</h1>
-            <p>Успейте купить этот домен!<br>Ваш бизнес-адрес там, где живут ваши клиенты.</p>
+        <header class="hero reveal tilt-card flashlight-fx" data-delay="0">
+            <div class="tilt-inner">
+                <h1>ruchi2.ru</h1>
+                <p>Успейте купить этот домен!<br>Ваш бизнес-адрес там, где живут ваши клиенты.</p>
+            </div>
         </header>
 
         <!-- Сетка карточек -->
         <div class="grid" id="interactive-grid">
-            <div class="card">
+            <div class="card reveal tilt-card" data-delay="100">
                 <div class="card-content">
                     <h3>01. Локальная монополия</h3>
                     <p>ЖК «Ручьи 2» — тысячи экономически активных людей ждут вашу услугу. Владение прямым доменом района дает неоспоримое преимущество перед конкурентами в SEO и узнаваемости.</p>
                 </div>
             </div>
-            <div class="card">
+            <div class="card reveal tilt-card" data-delay="200">
                 <div class="card-content">
                     <h3>02. Высокая конверсия</h3>
                     <p>Домен идеален для УК (подходит для переадресации), агрегатора услуг, локальной доставки, создание форума жильцов или доски объявлений. Имя говорит само за себя — клиентам не нужно его гуглить.</p>
                 </div>
             </div>
-            <div class="card">
+            <div class="card reveal tilt-card" data-delay="300">
                 <div class="card-content">
                     <h3>03. Рост актива гарантирован</h3>
                     <p>По мере сдачи новых очередей строительства ценность этого цифрового актива кратно возрастает. Это инвестиция, которая окупается трафиком.</p>
@@ -414,68 +417,204 @@
             </div>
         </div>
 
-        <!-- Покупка -->
-        <div class="action-area" id="buy">
-            <div class="badge">Стоимость</div>
+        <!-- СТРУКТУРА: 2 КОЛОНКИ -->
+        <div class="split-layout">
+            
+<!-- Левая колонка (Прилипает при скролле) -->
+            <div class="sticky-sidebar">
+                <!-- Рекламный блок (Демонстрация монетизации) -->
+                <div class="promo-block reveal tilt-card flashlight-fx" data-delay="100" id="interactive-promo">
+                    <div class="promo-badge">РЕКЛАМА</div>
+                    <div class="promo-content">
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <span class="badge" style="background: #fef3c7; border-color: #fcd34d; color: #d97706;">Хит продаж</span>
+                            <span class="badge" style="background: #fff; border-color: #fde68a; color: #b45309;">100% ЛСР совместимость</span>
+                        </div>
+                        <h3 style="font-size: 1.4rem; color: #92400e; margin-bottom: 12px; font-weight: 800; line-height: 1.2;">Чехол для магнитного ключа домофона ЛСР</h3>
+                        <p style="color: #b45309; font-size: 0.95rem; margin-bottom: 24px; line-height: 1.6; text-align: justify;">
+                            Защищает ключ. Исключает потребность изготовления дорогого дубликата. Спроектировано специально под типовые магнитные ключи домофонов ЖК «Ручьи 2».
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; pointer-events: auto;">
+                            <div style="font-size: 1.6rem; font-weight: 900; color: #b45309;">150 ₽</div>
+                            <a href="https://www.ozon.ru/product/chehol-perelivayushchiysya-trehtsvetnyy-zoloto-serebro-med-dlya-magnitnogo-klyucha-domofona-5464091655" target="_blank" class="btn" style="background: #f59e0b; color: #fff; padding: 12px 20px; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); text-decoration: none;">Смотреть на ozon.ru</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Правая колонка (Скроллится) -->
+            <div class="scrolling-content">
+                <!-- Справка в виде чистого технического штампа -->
+                <div class="footer-info stamp-corners reveal" id="blueprint-stamp" data-delay="200">
+                    <div class="blueprint-stamp">
+                        <div class="stamp-header">
+                            <div class="stamp-title">ПАСПОРТ ОБЪЕКТА</div>
+                            <div class="stamp-id">ID: RUCHI-2 //</div>
+                        </div>
+                        <div class="stamp-body">
+                            <div class="stamp-cell col-span-2">
+                                <span class="cell-label">Смысл домена</span>
+                                <span class="cell-value">Жилой комплекс «Ручьи 2» в Санкт-Петербурге</span>
+                            </div>
+                            <div class="stamp-cell">
+                                <span class="cell-label">ЗАСТРОЙЩИК</span>
+                                <span class="cell-value">«Группа ЛСР»</span>
+                            </div>
+                            
+                            <!-- АНИМИРОВАННЫЙ СТАТУС ЗАПОЛНЕНИЯ -->
+                            <div class="stamp-cell">
+                                <span class="cell-label">СТАТУС ИНФРАСТРУКТУРЫ</span>
+                                <div style="display: flex; align-items: center; gap: 12px; margin: 8px 0;">
+                                    <div class="progress-bar" style="margin: 0; flex-grow: 1;">
+                                        <div class="progress-fill" id="status-bar"></div>
+                                    </div>
+                                    <span id="status-percent" style="font-family: 'Courier New', monospace; font-weight: 900; color: var(--accent); font-size: 1.1rem; min-width: 45px;">0%</span>
+                                </div>
+                                <span class="cell-sub">Активное заселение</span>
+                            </div>
+                            
+                            <div class="stamp-cell col-span-2">
+                                <span class="cell-label">ЛОКАЦИЯ И КООРДИНАТЫ</span>
+                                <span class="cell-value">Санкт-Петербург, Красногвардейский р-н</span>
+                                <span class="cell-sub">59.982° N / 30.435° E</span>
+                            </div>
+                            <div class="stamp-cell col-span-2">
+                                <span class="cell-label">ТИП ЗАСТРОЙКИ</span>
+                                <span class="cell-value">Комфорт-класс</span>
+                                <span class="cell-sub">Отделка «под ключ»</span>
+                            </div>
+
+                            <div class="stamp-cell col-span-2 desc-cell">
+                                <span class="cell-label">АНАЛИТИЧЕСКАЯ СВОДКА И КОММЕРЧЕСКИЙ ПОТЕНЦИАЛ</span>
+                                <p>Квартал включает в себя десятки многоквартирных жилых домов, прогулочные аллеи и собственную социальную инфраструктуру. В связи с активным вводом корпусов в эксплуатацию, население комплекса постоянно увеличивается. Плотная застройка формирует колоссальный спрос на доставку, ремонт и повседневные сервисы у дома. Спешность в выводе локального бизнеса в цифровое пространство (включая покупку точного доменного имени) — определяющий фактор для закрепления лидерских позиций в новом районе.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Покупка (Теперь внизу) -->
+        <div class="action-area reveal">
+            <div class="badge" style="color: #fff;">Стоимость домена</div>
             <div class="price">20 000 ₽</div>
             <p>Переоформление через официального регистратора. Ценность и стоимость будет повышаться — район активно заселяется, и спрос на локальный брендинг растет каждый месяц.</p>
             <a href="mailto:Diman364@yandex.ru?subject=Покупка домена ruchi2.ru" class="btn">Diman364@yandex.ru</a>
         </div>
 
-        <!-- Справка в виде сложного технического штампа -->
-        <div class="footer-info">
-            <div class="blueprint-stamp">
-                <div class="stamp-header">
-                    <div class="stamp-title">ПАСПОРТ ОБЪЕКТА ЛОКАЦИИ</div>
-                    <div class="stamp-id">ID: RUCHI-2 //</div>
+        <!-- СТИЛЬНЫЙ ПОДВАЛ -->
+        <footer class="site-footer reveal">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <svg width="28" height="28" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#2563eb"/><text x="50" y="55" font-family="sans-serif" font-weight="800" font-size="48" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">Р2</text></svg>
+                    <span>ruchi2.ru</span>
                 </div>
-                <div class="stamp-body">
-                    <div class="stamp-cell col-span-2">
-                        <span class="cell-label">НАИМЕНОВАНИЕ ПРОЕКТА</span>
-                        <span class="cell-value">ЖК «Ручьи 2»</span>
-                    </div>
-                    <div class="stamp-cell">
-                        <span class="cell-label">ЗАСТРОЙЩИК</span>
-                        <span class="cell-value">«Группа ЛСР»</span>
-                    </div>
-                    <div class="stamp-cell">
-                        <span class="cell-label">СТАТУС ИНФРАСТРУКТУРЫ</span>
-                        <div class="progress-bar"><div class="progress-fill" style="width: 85%;"></div></div>
-                        <span class="cell-sub">Активное заселение</span>
-                    </div>
-                    
-                    <div class="stamp-cell col-span-2">
-                        <span class="cell-label">ЛОКАЦИЯ И КООРДИНАТЫ</span>
-                        <span class="cell-value">Санкт-Петербург, Красногвардейский р-н</span>
-                        <span class="cell-sub">59.982° N / 30.435° E</span>
-                    </div>
-                    <div class="stamp-cell col-span-2">
-                        <span class="cell-label">ТИП ЗАСТРОЙКИ</span>
-                        <span class="cell-value">Комфорт-класс</span>
-                        <span class="cell-sub">Отделка «под ключ»</span>
-                    </div>
-
-                    <div class="stamp-cell col-span-4 desc-cell">
-                        <span class="cell-label">АНАЛИТИЧЕСКАЯ СВОДКА И КОММЕРЧЕСКИЙ ПОТЕНЦИАЛ</span>
-                        <p>Квартал включает в себя десятки многоквартирных жилых домов, прогулочные аллеи и собственную социальную инфраструктуру. В связи с активным вводом корпусов в эксплуатацию, население комплекса постоянно увеличивается. Плотная застройка формирует колоссальный спрос на доставку, ремонт и повседневные сервисы у дома. Спешность в выводе локального бизнеса в цифровое пространство (включая покупку точного доменного имени) — определяющий фактор для закрепления лидерских позиций в новом районе.</p>
-                    </div>
+                <div class="footer-links">
+                    <a href="mailto:chikulev@mail.ru?subject=Покупка домена ruchi2.ru">Связаться с владельцем</a>
+                    <a href="#top">Наверх ↑</a>
                 </div>
             </div>
-        </div>
+            <div class="footer-bottom">
+                <p>© 2026. Домен продаётся. Все права защищены.</p>
+                <p>Не связано с ЛСР Групп или УК.</p>
+            </div>
+        </footer>
+
     </div>
 
     <script>
-        // JS для эффекта свечения (фонарика) при наведении на сетку карточек
-        document.getElementById('interactive-grid').onmousemove = e => {
-            for(const card of document.getElementsByClassName('card')) {
-                const rect = card.getBoundingClientRect(),
-                      x = e.clientX - rect.left,
-                      y = e.clientY - rect.top;
+        // // 1. ПАРАЛЛАКС ФОНА (мягкое движение сетки за мышью)
+        // document.addEventListener('mousemove', (e) => {
+        //     const x = (e.clientX / window.innerWidth - 0.5) * 40; 
+        //     const y = (e.clientY / window.innerHeight - 0.5) * 40; 
+            
+        //     document.body.style.setProperty('--bg-x', `${x}px`);
+        //     document.body.style.setProperty('--bg-y', `${y}px`);
+        // });
+
+        // 2. ЭФФЕКТ СВЕЧЕНИЯ (Фонарик)
+        const applyFlashlight = (elementId, className) => {
+            const container = document.getElementById(elementId);
+            if (!container) return;
+            
+            container.addEventListener('mousemove', e => {
+                const elements = className ? container.getElementsByClassName(className) : [container];
+                for(const el of elements) {
+                    const rect = el.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    el.style.setProperty('--mouse-x', `${x}px`);
+                    el.style.setProperty('--mouse-y', `${y}px`);
+                }
+            });
+        };
+        applyFlashlight('interactive-grid', 'card');
+        applyFlashlight('interactive-promo', null);
+        applyFlashlight('blueprint-stamp', 'blueprint-stamp'); // добавлено свечение на весь штамп
+
+        // 3. ФИЗИЧЕСКИЙ 3D НАКЛОН КАРТОЧЕК
+        const tiltCards = document.querySelectorAll('.tilt-card');
+        tiltCards.forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
                 
-                card.style.setProperty('--mouse-x', `${x}px`);
-                card.style.setProperty('--mouse-y', `${y}px`);
-            }
-        }
+                // Максимум 8 градусов наклона
+                const rotateX = ((y - centerY) / centerY) * -8;
+                const rotateY = ((x - centerX) / centerX) * 8;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)`;
+            });
+        });
+
+        // 4. ИНТЕЛЛЕКТУАЛЬНЫЙ СКРОЛЛ И ЗАПУСК ПРОГРЕСС-БАРА
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        let progressAnimated = false; // Флаг, чтобы анимация чисел не запускалась дважды
+
+        const observer = new IntersectionObserver(function(entries, observer) {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                
+                const delay = entry.target.getAttribute('data-delay') || 0;
+                setTimeout(() => {
+                    entry.target.classList.add('active');
+                }, delay);
+                
+                // Если докрутили до штампа - плавно заливаем прогресс-бар и крутим цифры
+                if(entry.target.id === 'blueprint-stamp' && !progressAnimated) {
+                    progressAnimated = true;
+                    setTimeout(() => {
+                        document.getElementById('status-bar').style.width = '85%';
+                        
+                        // Анимация бегущих чисел
+                        let count = 0;
+                        let counterElement = document.getElementById('status-percent');
+                        let interval = setInterval(() => {
+                            count++;
+                            counterElement.innerText = count + '%';
+                            if(count >= 85) clearInterval(interval);
+                        }, 15); // Скорость подбирается так, чтобы успеть за заливкой бара (85 * 15ms ~= 1.3s)
+                        
+                    }, 500);
+                }
+
+                observer.unobserve(entry.target);
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
     </script>
 </body>
 </html>
