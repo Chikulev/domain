@@ -228,65 +228,144 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.2);
         }
 
-        /* Справка (Паспорт объекта) */
+        /* НОВАЯ СПРАВКА: ТЕХНИЧЕСКИЙ ШТАМП ЧЕРТЕЖА */
         .footer-info {
             margin-top: 80px;
-            background: #ffffff;
-            border: 2px solid var(--text-main);
-            border-radius: 0; /* Острые углы для чертежа */
-            box-shadow: 8px 8px 0 var(--border-color);
+            background: var(--card-bg);
+            border: 1px solid var(--accent);
+            border-radius: 2px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.08);
+            overflow: hidden;
         }
 
-        .spec-header {
-            background: var(--text-main);
-            color: #ffffff;
-            padding: 12px 20px;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            font-size: 1.1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        /* Декоративные уголки */
+        .footer-info::before, .footer-info::after {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            border: 2px solid var(--accent);
+            z-index: 2;
+            pointer-events: none;
+        }
+        .footer-info::before { top: 0; left: 0; border-right: none; border-bottom: none; }
+        .footer-info::after { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+        .blueprint-stamp {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stamp-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            background: var(--accent);
+            color: #fff;
+            padding: 16px 24px;
+            font-family: 'Courier New', Courier, monospace;
         }
 
-        .spec-body {
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        .stamp-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
         }
 
-        .spec-row {
-            display: flex;
-            border-bottom: 1px dashed var(--border-color);
-            padding-bottom: 15px;
-        }
-
-        .spec-row:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .spec-label {
-            width: 200px;
-            font-weight: 600;
-            color: var(--text-muted);
+        .stamp-id {
             font-size: 0.9rem;
+            opacity: 0.8;
+            letter-spacing: 1px;
+        }
+
+        .stamp-body {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .stamp-cell {
+            padding: 24px;
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stamp-cell:nth-child(4n) { border-right: none; }
+        .desc-cell { border-bottom: none; border-right: none; }
+
+        .col-span-2 { grid-column: span 2; }
+        .col-span-4 { grid-column: span 4; }
+
+        .cell-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
             text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-family: 'Courier New', Courier, monospace;
         }
 
-        .spec-value {
-            flex: 1;
+        .cell-value {
+            font-size: 1.15rem;
             color: var(--text-main);
+            font-weight: 700;
+            line-height: 1.3;
         }
 
-        .spec-desc {
+        .cell-sub {
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .desc-cell p {
             color: var(--text-muted);
             line-height: 1.7;
             font-size: 0.95rem;
+            margin-top: 10px;
+            column-count: 2;
+            column-gap: 40px;
+            text-align: justify;
+        }
+
+        /* Анимированный прогресс-бар */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255,255,255,0.3) 10px,
+                rgba(255,255,255,0.3) 20px
+            );
+            animation: moveStripes 2s linear infinite;
+        }
+
+        @keyframes moveStripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 28px 0; }
         }
 
         @keyframes fadeUp {
@@ -297,8 +376,10 @@
         @media (max-width: 768px) {
             .hero h1 { font-size: 3rem; }
             .price { font-size: 2.8rem; }
-            .spec-row { flex-direction: column; gap: 5px; }
-            .spec-label { width: auto; }
+            .stamp-body { grid-template-columns: 1fr; }
+            .stamp-cell { border-right: none; }
+            .col-span-2, .col-span-4 { grid-column: span 1; }
+            .desc-cell p { column-count: 1; }
         }
     </style>
 </head>
@@ -335,35 +416,48 @@
 
         <!-- Покупка -->
         <div class="action-area" id="buy">
-            <div class="badge">Эксклюзивный актив</div>
+            <div class="badge">Стоимость</div>
             <div class="price">20 000 ₽</div>
             <p>Переоформление через официального регистратора. Ценность и стоимость будет повышаться — район активно заселяется, и спрос на локальный брендинг растет каждый месяц.</p>
-            <a href="mailto:Diman364@yandex.ru?subject=Покупка домена ruchi2.ru" class="btn">Пишите: Diman364@yandex.ru</a>
+            <a href="mailto:Diman364@yandex.ru?subject=Покупка домена ruchi2.ru" class="btn">Diman364@yandex.ru</a>
         </div>
 
-        <!-- Справка в виде паспорта объекта -->
+        <!-- Справка в виде сложного технического штампа -->
         <div class="footer-info">
-            <div class="spec-header">
-                <span>Паспорт объекта локации</span>
-                <span>ID: RUCHI-2</span>
-            </div>
-            <div class="spec-body">
-                <div class="spec-row">
-                    <div class="spec-label">Застройщик:</div>
-                    <div class="spec-value">«Группа ЛСР»</div>
+            <div class="blueprint-stamp">
+                <div class="stamp-header">
+                    <div class="stamp-title">ПАСПОРТ ОБЪЕКТА ЛОКАЦИИ</div>
+                    <div class="stamp-id">ID: RUCHI-2 //</div>
                 </div>
-                <div class="spec-row">
-                    <div class="spec-label">Расположение:</div>
-                    <div class="spec-value">Санкт-Петербург, Красногвардейский р-н</div>
-                </div>
-                <div class="spec-row">
-                    <div class="spec-label">Тип застройки:</div>
-                    <div class="spec-value">Масштабный проект комфорт-класса</div>
-                </div>
-                <div class="spec-row">
-                    <div class="spec-label">Анализ рынка:</div>
-                    <div class="spec-desc">
-                        Квартал включает в себя десятки многоквартирных жилых домов, прогулочные аллеи и собственную социальную инфраструктуру. В связи с активным вводом корпусов в эксплуатацию, население комплекса постоянно увеличивается. Плотная застройка формирует колоссальный спрос на доставку, ремонт и повседневные сервисы у дома. Спешность в выводе локального бизнеса в цифровое пространство (включая покупку точного доменного имени) — определяющий фактор для закрепления лидерских позиций в новом районе.
+                <div class="stamp-body">
+                    <div class="stamp-cell col-span-2">
+                        <span class="cell-label">НАИМЕНОВАНИЕ ПРОЕКТА</span>
+                        <span class="cell-value">ЖК «Ручьи 2»</span>
+                    </div>
+                    <div class="stamp-cell">
+                        <span class="cell-label">ЗАСТРОЙЩИК</span>
+                        <span class="cell-value">«Группа ЛСР»</span>
+                    </div>
+                    <div class="stamp-cell">
+                        <span class="cell-label">СТАТУС ИНФРАСТРУКТУРЫ</span>
+                        <div class="progress-bar"><div class="progress-fill" style="width: 85%;"></div></div>
+                        <span class="cell-sub">Активное заселение</span>
+                    </div>
+                    
+                    <div class="stamp-cell col-span-2">
+                        <span class="cell-label">ЛОКАЦИЯ И КООРДИНАТЫ</span>
+                        <span class="cell-value">Санкт-Петербург, Красногвардейский р-н</span>
+                        <span class="cell-sub">59.982° N / 30.435° E</span>
+                    </div>
+                    <div class="stamp-cell col-span-2">
+                        <span class="cell-label">ТИП ЗАСТРОЙКИ</span>
+                        <span class="cell-value">Комфорт-класс</span>
+                        <span class="cell-sub">Отделка «под ключ»</span>
+                    </div>
+
+                    <div class="stamp-cell col-span-4 desc-cell">
+                        <span class="cell-label">АНАЛИТИЧЕСКАЯ СВОДКА И КОММЕРЧЕСКИЙ ПОТЕНЦИАЛ</span>
+                        <p>Квартал включает в себя десятки многоквартирных жилых домов, прогулочные аллеи и собственную социальную инфраструктуру. В связи с активным вводом корпусов в эксплуатацию, население комплекса постоянно увеличивается. Плотная застройка формирует колоссальный спрос на доставку, ремонт и повседневные сервисы у дома. Спешность в выводе локального бизнеса в цифровое пространство (включая покупку точного доменного имени) — определяющий фактор для закрепления лидерских позиций в новом районе.</p>
                     </div>
                 </div>
             </div>
